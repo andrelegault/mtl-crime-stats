@@ -11,7 +11,7 @@
 import numpy as np
 from math import ceil
 import matplotlib.pyplot as plt
-from matplotlib import colors
+import matplotlib.ticker as ticker
 import geopandas
 
 #from mpl_toolkits.axes_grid1 import ImageGrid
@@ -23,6 +23,9 @@ THRESHOLD = 0.50
 # Size of a block in the grid
 BLOCK_SIZE_X = 0.002 # should be <= 0.002 (recommended)
 BLOCK_SIZE_Y = 0.002 # should be <= 0.002 (recommended)
+
+NUM_LABELS_X = 5
+NUM_LABELS_Y = 5
 
 # four coordinates
 P1 = {'x': -73.59, 'y': 45.49}
@@ -72,19 +75,19 @@ def get_pos(x, y):
     pos_y = ceil((y - P1['y']) / BLOCK_SIZE_Y) - 1
     return pos_x, pos_y
 
-""" Returns the average of a 2-dimensional array. """
-def avg(grid):
-    total = 0
-    size = 0
-    for x in range(len(grid)):
-        for y in range(len(grid[x])):
-            total = total + grid[x][y]
-    avg = total / (len(grid) * len(grid[0]))
-    return avg
-
 def get_num_blocks(num1, num2, size):
     return round((num1 - num2) / size)
 
+def get_labels(start, end, num, size):
+    labels = [0, start]
+    current = start
+    jump = (end - start) / num
+    for i in range(num):
+        current = current + jump
+        labels.append(round(current, 3))
+    
+    return labels, ticker.MultipleLocator(jump / size)
+    
 
 # https://matplotlib.org/3.1.1/gallery/images_contours_and_fields/pcolor_demo.html#sphx-glr-gallery-images-contours-and-fields-pcolor-demo-py
 if __name__ == '__main__':
@@ -97,6 +100,9 @@ if __name__ == '__main__':
     for point in pos:
         x_pos, y_pos = get_pos(point.x, point.y)
         grid[x_pos][y_pos] = grid[x_pos][y_pos] + 1
+
+    avg = np.average(grid)
+    std = np.std(grid)
 
     flat = grid.flatten()
     sorted = np.sort(flat)
@@ -112,7 +118,15 @@ if __name__ == '__main__':
             num = grid[i][j]
             grid[i][j] = 1 if num >= cap else 0 # its a block
 
-    test, lol = plt.subplots(1,1)
-    lol.pcolor(grid)
+    fig, ax = plt.subplots(1,1)
+    ax.set_title('Montreal Crime grid with size {0}x{1}'.format(BLOCK_SIZE_X, BLOCK_SIZE_Y))
+    x_labels, major_locator = get_labels(-73.590, -73.55, 5, BLOCK_SIZE_X)
+    y_labels, minor_locator = get_labels(45.490, 45.530, 5, BLOCK_SIZE_Y)
+
+    ax.xaxis.set_major_locator(major_locator)
+    ax.set_xticklabels(x_labels)
+    ax.yaxis.set_major_locator(minor_locator)
+    ax.set_yticklabels(y_labels)
+    ax.pcolor(grid)
 
     plt.show()
