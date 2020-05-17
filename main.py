@@ -18,7 +18,7 @@ import geopandas
 import shapefile
 
 # Defines high crime rate vs. low crime rate.
-THRESHOLD = 0.5
+THRESHOLD = 0.50
 
 # Size of a block in the grid
 BLOCK_SIZE_X = 0.002 # should be <= 0.002 (recommended)
@@ -72,6 +72,7 @@ def get_pos(x, y):
     pos_y = ceil((y - P1['y']) / BLOCK_SIZE_Y) - 1
     return pos_x, pos_y
 
+""" Returns the average of a 2-dimensional array. """
 def avg(grid):
     total = 0
     size = 0
@@ -81,11 +82,15 @@ def avg(grid):
     avg = total / (len(grid) * len(grid[0]))
     return avg
 
-if __name__ == '__main__':
-    num_blocks_x = round((P4['x'] - P1['x']) / BLOCK_SIZE_X)
-    num_blocks_y = round((P2['y'] - P1['y']) / BLOCK_SIZE_Y)
-    grid = np.zeros(shape=(num_blocks_x, num_blocks_y), dtype=int)
+def get_num_blocks(num1, num2, size):
+    return round((num1 - num2) / size)
 
+
+# https://matplotlib.org/3.1.1/gallery/images_contours_and_fields/pcolor_demo.html#sphx-glr-gallery-images-contours-and-fields-pcolor-demo-py
+if __name__ == '__main__':
+    num_blocks_x = get_num_blocks(P4['x'], P1['x'], BLOCK_SIZE_X)
+    num_blocks_y = get_num_blocks(P2['y'], P1['y'], BLOCK_SIZE_Y)
+    grid = np.zeros(shape=(num_blocks_x, num_blocks_y), dtype=int)
 
     gdf = geopandas.read_file('crime_data')
     pos = gdf['geometry']
@@ -93,18 +98,31 @@ if __name__ == '__main__':
         x_pos, y_pos = get_pos(point.x, point.y)
         grid[x_pos][y_pos] = grid[x_pos][y_pos] + 1
 
-    print(grid.flatten())
-    print(avg(grid))
-    
+    flat = grid.flatten()
+    sorted = np.sort(flat)
+    # if you have a threshold of 0.25, anything after 1/4 of the indexes should be indicated as blocks
+    # if you have a threshold of 0.8, anything after 4/5 of the indexes should be indicated as blocks
+    cap_i = int((len(sorted) * (THRESHOLD)))
+    cap = sorted[cap_i]
+
+    # disable every grid whose cap is less than {cap}
+    # new discovery: 0 is purple and 1 is yellow
+    for i in range(len(grid)):
+        for j in range(len(grid[i])):
+            num = grid[i][j]
+            grid[i][j] = 1 if num >= cap else 0 # its a block
+
+    test, lol = plt.subplots(1,1)
+    lol.pcolor(grid)
+
+    """
     shp = shapefile.Reader('crime_data/crime_dt', encoding='cp863')
     list_x = []
     list_y = []
-
-
     for sr in shp.shapeRecords():
         for x, y in sr.shape.points:
             list_x.append(x)
             list_y.append(y)
-    test = plt.hist2d(list_x, list_y, bins=40, cmin=0.5)
-    print(test)
+    test = plt.hist2d(list_x, list_y, bins=20, cmax=cap)
+    """
     plt.show()
