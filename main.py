@@ -115,14 +115,4 @@ if __name__ == '__main__':
     test, lol = plt.subplots(1,1)
     lol.pcolor(grid)
 
-    """
-    shp = shapefile.Reader('crime_data/crime_dt', encoding='cp863')
-    list_x = []
-    list_y = []
-    for sr in shp.shapeRecords():
-        for x, y in sr.shape.points:
-            list_x.append(x)
-            list_y.append(y)
-    test = plt.hist2d(list_x, list_y, bins=20, cmax=cap)
-    """
     plt.show()
