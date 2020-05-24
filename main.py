@@ -37,38 +37,6 @@ DEFAULT_X_RIGHT = -73.55
 
 DEFAULT_Y_TOP = 45.53
 
-class CrimePoint:
-    color = 'purple' # to prefix with 'xdcd:'
-
-class CrimeBlock:
-    total = 0
-
-    start_x = 0
-    end_x = 0
-
-    start_y = 0
-    end_y = 0
-
-    def __init__(self, data):
-        for record in data:
-            total = total + 1
-
-class CrimeGrid:
-    mean = 0
-    std_dev = 0 # holds the stats for the entire grid
-    blocks = [] # holds all the blocks in the grid
-
-    def __init__(self, data):
-        for record in data:
-            pass
-
-#TODO: put in CrimeGrid class
-def calculate_area(p1, p2, p3, p4):
-    total = (((p1['x'] * p2['y'] ) - (p1['y'] * p2['x'])) +
-            ((p2['x'] * p3['y']) - (p2['y'] * p3['x'])) +
-            ((p3['x'] * p4['y']) - (p3['y'] * p4['x'])))
-    return abs(total) / 2
-
 """ Using first points as anchors, get position in square. """
 def get_pos(x, y):
     pos_x = floor((x - P1['x']) / BLOCK_SIZE_X)
