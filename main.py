@@ -33,11 +33,10 @@ P2 = {'x': -73.59, 'y': 45.53}
 P3 = {'x': -73.55, 'y': 45.53}
 P4 = {'x': -73.55, 'y': 45.49}
 
-DEFAULT_X_RIGHT = -73.55
-
-DEFAULT_Y_TOP = 45.53
-
-""" Using first points as anchors, get position in square. """
+""" Using first points as anchors, get position in square.
+An input such as (-73.59, 45.49) returns 0, 0 as this point is located
+in the bottom left cell (using grid_size=0.002).
+"""
 def get_pos(x, y):
     pos_x = floor((x - P1['x']) / BLOCK_SIZE_X)
     pos_y = floor((y - P1['y']) / BLOCK_SIZE_Y)
@@ -76,10 +75,15 @@ def get_grid(points, num_x, num_y):
 def show_cell_counts(pc, ax, grid, num_x, num_y):
     counter = 0
     for p in pc.get_paths():
+        print(p)
         x, y = p.vertices[:, :].mean(0)
         ax.text(x, y, grid[floor(counter / num_x)][counter % num_y], c='white')
         counter = counter + 1
-        print(x, y)
+
+""" This class is a dict that represents which points are bound to which grid cells. """
+class CrimeGraph:
+    def __init__(self, coords):
+                
 
 # https://matplotlib.org/3.1.1/gallery/images_contours_and_fields/pcolor_demo.html#sphx-glr-gallery-images-contours-and-fields-pcolor-demo-py
 if __name__ == '__main__':
@@ -130,4 +134,6 @@ if __name__ == '__main__':
             xytext=(x2, y2), textcoords='data',
             arrowprops=dict(facecolor='white', arrowstyle="-"))
     show_cell_counts(pcm, ax, grid, num_blocks_x, num_blocks_y)
+
+    c = CrimeGraph((P1, P2, P3, P4))
     plt.show()
