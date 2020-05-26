@@ -15,7 +15,7 @@ import matplotlib.ticker as ticker
 import geopandas
 
 #from mpl_toolkits.axes_grid1 import ImageGrid
-import shapefile
+#import shapefile
 
 # Defines high crime rate vs. low crime rate.
 THRESHOLD = 0.5
@@ -75,11 +75,20 @@ def get_grid(points, num_x, num_y):
 def show_cell_counts(pc, ax, grid, num_x, num_y):
     counter = 0
     for p in pc.get_paths():
-        print(p.vertices[:,:]) # bottom-right, top-right, top-left, bottom-left
+        b_r, t_r, t_l, b_l, test = p.vertices
         break
         x, y = p.vertices[-2:,:].mean(0)
         ax.text(x, y, grid[floor(counter / num_x)][counter % num_y], c='white')
         counter = counter + 1
+
+def make_graph(grid, points):
+    pass
+    # { point -> cells[] }
+    # and then
+    # { cell -> [{someCell -> distance}, {...}]}, would depend on if cell is block or not or if it's an edge or not
+    # f(n) = g(n) + h(n)
+    # g(n) is distance
+    # h(n) is approximation, e.g., 1.5 if non-crime.
 
 """ This class is a dict that represents which points are bound to which grid cells. """
 class CrimeGraph:
@@ -112,8 +121,6 @@ if __name__ == '__main__':
             num = grid[i][j]
             grid_colors[i][j] = 1 if num >= cap else 0 # its a block
 
-    print(grid_colors[6][4])
-    print(grid[6][4])
     fig, ax = plt.subplots(1,1)
     ax.set_title('Montreal Crime grid with size {0}x{1}'.format(BLOCK_SIZE_X, BLOCK_SIZE_Y))
     x_labels, major_locator = get_labels(P1['x'], P4['x'], 5, BLOCK_SIZE_X)
@@ -135,4 +142,4 @@ if __name__ == '__main__':
     show_cell_counts(pcm, ax, grid, num_blocks_x, num_blocks_y)
 
     c = CrimeGraph((P1, P2, P3, P4))
-    plt.show()
+    #plt.show()
