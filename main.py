@@ -75,15 +75,16 @@ def get_grid(points, num_x, num_y):
 def show_cell_counts(pc, ax, grid, num_x, num_y):
     counter = 0
     for p in pc.get_paths():
-        print(p)
-        x, y = p.vertices[:, :].mean(0)
+        print(p.vertices[:,:]) # bottom-right, top-right, top-left, bottom-left
+        break
+        x, y = p.vertices[-2:,:].mean(0)
         ax.text(x, y, grid[floor(counter / num_x)][counter % num_y], c='white')
         counter = counter + 1
 
 """ This class is a dict that represents which points are bound to which grid cells. """
 class CrimeGraph:
     def __init__(self, coords):
-                
+        pass
 
 # https://matplotlib.org/3.1.1/gallery/images_contours_and_fields/pcolor_demo.html#sphx-glr-gallery-images-contours-and-fields-pcolor-demo-py
 if __name__ == '__main__':
@@ -109,8 +110,6 @@ if __name__ == '__main__':
     for i in range(len(grid_colors)):
         for j in range(len(grid_colors[i])):
             num = grid[i][j]
-            if num >= cap:
-                print(i, j)
             grid_colors[i][j] = 1 if num >= cap else 0 # its a block
 
     print(grid_colors[6][4])
