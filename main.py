@@ -14,6 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import geopandas
+from heapq import import heappush, heappop
 
 #from mpl_toolkits.axes_grid1 import ImageGrid
 #import shapefile
@@ -56,14 +57,6 @@ def get_pos(x, y):
 def get_num_blocks(num1, num2, size):
     return round((num1 - num2) / size)
 
-def f_func():
-    return g_func() + h_func()
-
-def g_func(point):
-    cell = get_cell(point)
-    if cell:
-        pass
-
 def get_labels(start, end, num, size):
     #TODO: 0 is a quick-fix
     labels = [0, start]
@@ -75,16 +68,47 @@ def get_labels(start, end, num, size):
     
     return labels, ticker.MultipleLocator(jump / size)
     
-
 def show_cell_counts(pc, ax, grid, num_x, num_y):
     counter = 0
     for p in pc.get_paths():
         b_r, t_r, t_l, b_l, test = p.vertices
         x, y = p.vertices[-2:,:].mean(0)
-        ax.text(x, y, grid.cells[floor(counter / num_x)][counter % num_y].crimes, c='white')
-        counter = counter + 1
+        i = floor(counter / num_x)
+        j = counter % num_y
+        ax.text(x, y, grid.cells[i][j].crimes, c='white')
+        counter += 1
 ######################### END of UTILS ######################### 
 
+
+# pq's https://towardsdatascience.com/introduction-to-priority-queues-in-python-83664d3178c3
+class AStar:
+    @staticmethod
+    search(grid, start, goal):
+        start.set_f()
+        open_list = [] # to be evaluate
+        closed_list = [] #already evaluated
+        heappush(open_list, (start.f(), start)) # sort by f
+
+        done = False
+
+        while not done:
+            cur = heappop(open_list)
+            closed_list.append(cur)
+
+            if cur is goal: # 'is' compares references while == compares values
+                return
+
+            for neighbour in cur.neighbours():
+                skip = False
+                if neighbour.blocked is False or neighbour in closed_list:
+                    skip = True
+
+                if not skip:
+                    if neighbour.f() < cur.f() or neighbour not in open_list:
+                        neighbour.set_f()
+                        neighbour.parent = cur
+                        if neighbour not in open_list:
+                            heappush(open_list, (neighbour.f(), neighbour))
 
 class CrimeGrid:
     def __init__(self, points, num_blocks_x, num_blocks_y):
@@ -99,7 +123,7 @@ class CrimeGrid:
             cell = self.cells[x_i][y_i]
             cell.x, cell.y = x_i, y_i
             #self.cells[x_i][y_i].crimes = self.cells[x_i][y_i].crimes + 1
-            cell.crimes = cell.crimes + 1
+            cell.crimes += 1
 
         self.set_crime_blocks(THRESHOLD)
 
@@ -150,74 +174,27 @@ class CrimeGrid:
             for j in range(len(grid.cells[i])):
                 self.set_costs(self)
 
-    def set_neighbors(self):
-        self.graph[(x, y)] = {(x_other, y_other): distance((x, y), (x2, y2))}
+    def set_neighbours(self):
+        #self.graph[(x, y)] = {(x_other, y_other): distance((x, y), (x2, y2))}
         cell = self.cells[i][j]
 
         for x in range(len(self.grid)):
             for y in range(len(self.grid[0])):
                 cell = self.cells[x][y]
-                cell.neighbors = {}
                 for i in range(-1, 2):
                     for j in range(-1, 2):
                         eff_x, eff_y = x+i, y+j
-                        if (eff_x >= 0 and eff_x =< len(grid)-1) and (eff_y >= 0 and eff_y<=len(grid[0])-1):
-                            self.add_neighbor(cell, self.cells[eff_x, eff_y])
-                        """
-                        if i > 0 and i < len(grid)-1:
-                            left, right = # something
-                            if j > 0 and j < len(grid[0])-1:
-                                top_right, top_left, bot_left, bot_right = ...
-                                diag_top_right, diag_top_left, diag_bot_right, diag_bot_left = ...
-                        """
-                        self.neighbors = {}
-                        if i == 0:
-                            left, diag_bot_left, diag_top_left = None, None, None
-                            right = #something
-                        elif i == len(grid)-1:
-                            right, diag_bot_right, diag_top_right = None, None, None
-                            left = #something
-                        else:
-                            right, left = #something and some other thing
+                        if (eff_x >= 0 and eff_x =< len(grid)-1) and (eff_y >= 0 and eff_y<=len(grid[0])-1): # x and y are in range
+                            cell.neighbours.append(self.cells[eff_x, eff_y])
 
-                        if j == 0:
-                            bot, diag_bot_right, diag_bot_left = None, None, None
-                        if j == len(grid[0])-1:
-                            top, diag_top_right, diag_top_left = None, None, None
-
-                        bot, top, right, left = cells[i][j-1], cells[i][j+1], cells[i+1][j], cells[i-1][j]
-                        diag_bot_right, diag_bot_left, diag_top_right, diag_top_left = cells[i+1][j-1], cells[i-1][j-1], cells[i+1][j+1], cells[i-1][j+1]
-                        self.graph[cell][self.graph[]]
-
-    def is_valid_neighbor(self, cell, other):
-        if (cell.x != other.x) and (cell.y != other.y): # diagonal movement
-            if cell.x < other.x and cell.y < other.y: # top right
-                return cell.blocked is False
-            if cell.x > other.x and cell.y < other.y: # top left
-                return self.cells[cell.x-1].blocked is False
-            if cell.x < other.x and cell.y > other.y: # bottom right
-                return self.cells[cell.x][cell.x-1]
-            else: # bottom left
-                return self.cells[cell.x-1][cell.x-1]
-        elif (cell.x == other.x) and (cell.y != other.y): # vertical movement
-            if cell.y < other.y: # up
-                return cell.blocked is False and self.cells[cell.x-1][cell.y].blocked is False
-            else: #down
-                return self.cells[cell.x-1][cell.y].blocked is False and self.cells[cell.x-1][cell.y-1].blocked is False
-        elif (cell.x != other.x) and (cell.y == other.y): # horizontal movement
-            if (cell.x < other.x):
-                return cell.blocked is False
-            else:
-                return other.blocked is False
-        else:
-            print("Going to itself, what?")
-
-                
+    @staticmethod
+    def movement_cost(start, goal)
 
 class CrimeCell:
     def __init__(self, crimes=0, block=False):
         self.crimes = crimes
         self.block = block
+        self.neighbours = []
 
     def __gt__(self, other):
         return self.crimes > other.crimes
@@ -228,13 +205,41 @@ class CrimeCell:
     def __str__(self):
         return "crimes: {0}, block: {1}".format(self.crimes, self.block)
 
-    """ Movements have already been filtered.
-    n is assumed to be a valid neighbor of self."""
-    def g(self, n):
+    def __g(self, n):
+        if (self.x != other.x) and (self.y != other.y): # diagonal movement
+            if self.x < other.x and self.y < other.y: # top right
+                return 1.5 if not self.blocked else 1000
+            elif self.x > other.x and self.y < other.y: # top left
+                return 1.5 if not self.cells[self.x-1].blocked else 1000
+            elif self.x < other.x and self.y > other.y: # bottom right
+                return 1.5 if not self.cells[self.x][self.x-1].blocked else 1000
+            else: # bottom left
+                return 1.5 if not self.cells[self.x-1][self.x-1].blocked else 
+        elif (self.x == other.x) and (self.y != other.y): # vertical movement
+            if self.y < other.y: # up
+                return self.blocked is False and self.cells[self.x-1][self.y].blocked is False
+            else: #down
+                return self.cells[self.x-1][self.y].blocked is False and self.cells[self.x-1][self.y-1].blocked is False
+        elif (self.x != other.x) and (self.y == other.y): # horizontal movement
+            if (self.x < other.x): # left
+                return self.blocked is False
+            else: #right
+                return other.blocked is False
+        else:
+            print("Going to itself, what?")
 
-    def f(self, n):
-        return self.g(n) + self.h(n)
+                
 
+    def __h(self, goal):
+        dx = abs(self.x - goal.x)
+        dy = abs(self.y - goal.y)
+        dmax = max(dx, dy)
+        dmin = min(dx, dy)
+        return (COST_FREE_DIAG * dmin) + COST_FREE_FREE * (dmax - dmin)
+
+
+    def set_f(self, n):
+        self.f = self.__g(n) + self.__h(n)
 
     @staticmethod
     def get_pos(x, y):
@@ -298,23 +303,8 @@ class CrimeGraph:
         bot, top, right, left = cells[i][j-1], cells[i][j+1], cells[i+1][j], cells[i-1][j]
         diag_bot_right, diag_bot_left, diag_top_right, diag_top_left = cells[i+1][j-1], cells[i-1][j-1], cells[i+1][j+1], cells[i-1][j+1]
         self.graph[cell][self.graph[cells[
-
-
             
 
-class Node:
-    def __init__(self, ):
-        self.x = x
-        self.y = y
-        self.parent = parent
-
-    #def g(self, n):
-        #return .parent.g() + self.parent.cost_to(self)
-
-    def h(self, goal):
-        dx = abs(self.x - goal.x)
-        dy = abs(self.y - goal.y)
-        return 
 
 # https://matplotlib.org/3.1.1/gallery/images_contours_and_fields/pcolor_demo.html#sphx-glr-gallery-images-contours-and-fields-pcolor-demo-py
 if __name__ == '__main__':
