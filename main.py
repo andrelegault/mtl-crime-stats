@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import geopandas
-from heapq import import heappush, heappop
+from heapq import heappush, heappop
 
 # from mpl_toolkits.axes_grid1 import ImageGrid
 # import shapefile
@@ -172,7 +172,7 @@ class CrimeGrid:
                             continue
 
                         eff_x, eff_y = x+i, y+j
-                        if (eff_x >= 0 and eff_x =< len(grid)-1) and (eff_y >= 0 and eff_y<= len(grid[0])-1): # valid node
+                        if (eff_x >= 0 and eff_x <= len(grid)-1) and (eff_y >= 0 and eff_y<= len(grid[0])-1): # valid node
                             cell.neighbours.append(self.cells[eff_x, eff_y])
 
 class CrimeCell:
@@ -259,7 +259,7 @@ class CrimeCell:
                         return 1.3
                     return 1 if not left_b else 1000
                 else:  # right
-                    below_b = grid.cells[node.x][(node.y)-1)].blocked
+                    below_b = grid.cells[node.x][(node.y)-1].blocked
                     if node.blocked != below_b:
                         return 1.3
                     else:
@@ -281,51 +281,6 @@ class CrimeCell:
 # maintain depth/cost count, give preference to shorter/least expensive paths
 # heuristic algorithm is diagonal as per http://theory.stanford.edu/~amitp/GameProgramming/Heuristics.html
 # since we support 8 directions
-class CrimeGraph:
-    def __init__(self, grid):
-        # self.open_list = []
-        # self.closed_list = []
-        self.graph = {}
-        for i in range(len(grid.cells)):
-            for j in range(len(grid.cells[i])):
-                self.set_costs(grid, i, j)
-            self.graph[(x, y)] = {(x_other, y_other): distance((x, y), (x2, y2))}
-
-    """
-    def set_costs(self, grid, i, j):
-        cells = grid.cells
-        cell = grid.cells[i][j]
-
-        for x in range(-1, 2):
-            for y in range(-1, 2):
-                cell = grid[x][y]
-        if i > 0 and i < len(grid)-1:
-            left, right = # something
-            if j > 0 and j < len(grid[0])-1:
-                top_right, top_left, bot_left, bot_right = ...
-                diag_top_right, diag_top_left, diag_bot_right, diag_bot_left = ...
-                
-        node = Node()
-        if i == 0:
-            left, diag_bot_left, diag_top_left = None, None, None
-            right = # something
-        elif i == len(grid)-1:
-            right, diag_bot_right, diag_top_right = None, None, None
-            left = # something
-        else:
-            right, left = # something and some other thing
-
-        if j == 0:
-            bot, diag_bot_right, diag_bot_left = None, None, None
-        if j == len(grid[0])-1:
-            top, diag_top_right, diag_top_left = None, None, None
-
-        bot, top, right, left = cells[i][j-1], cells[i][j+1], cells[i+1][j], cells[i-1][j]
-        diag_bot_right, diag_bot_left, diag_top_right, diag_top_left = cells[i+1][j-1], cells[i-1][j-1], cells[i+1][j+1], cells[i-1][j+1]
-        self.graph[cell][self.graph[cells[]]
-    """
-            
-
 
 # https://matplotlib.org/3.1.1/gallery/images_contours_and_fields/pcolor_demo.html# sphx-glr-gallery-images-contours-and-fields-pcolor-demo-py
 if __name__ == '__main__':
@@ -357,7 +312,5 @@ if __name__ == '__main__':
             arrowprops=dict(facecolor='white', arrowstyle="-"))
 
     show_cell_counts(pcm, ax, grid, num_blocks_x, num_blocks_y)
-
-    c = CrimeGraph(grid)
 
     plt.show()
