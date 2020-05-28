@@ -10,11 +10,11 @@
 
 from math import floor, sqrt
 from random import random
+from heapq import heappush, heappop
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import geopandas
-from heapq import heappush, heappop
 
 # from mpl_toolkits.axes_grid1 import ImageGrid
 # import shapefile
@@ -131,9 +131,11 @@ class CrimeGrid:
     def std(self, avg):
         num = np.size(self.cells)
         total_dev = 0
-        for cell in np.nditer(self.cells, flags=['refs_ok']):
-            diff_sq = (cell.crimes - avg) ** 2
-            total_dev = total_dev + diff_sq
+        for i in range(len(self.cells)):
+            for j in range(len(self.cells[i])):
+                cell = self.cells[i][j]
+                diff_sq = (cell.crimes - avg) ** 2
+                total_dev = total_dev + diff_sq
 
         return round(sqrt(total_dev / num), 2)
 
@@ -299,6 +301,10 @@ if __name__ == '__main__':
     ax.set_xticklabels(x_labels)
     ax.yaxis.set_major_locator(minor_locator)
     ax.set_yticklabels(y_labels)
+
+    avg = grid.avg()
+    std = grid.std(avg)
+    print("Average: {0}\nStandard deviation: {1}".format(avg, std))
 
     color_mask = grid.get_mask()
     pcm = ax.pcolormesh(color_mask, edgecolors='white')
