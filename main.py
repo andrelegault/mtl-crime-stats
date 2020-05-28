@@ -11,6 +11,7 @@
 from math import floor, sqrt
 from random import random
 from heapq import heappush, heappop
+from decimal import Decimal, getcontext
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -23,43 +24,34 @@ import geopandas
 THRESHOLD = 0.5
 
 # Size of a block in the grid
-BLOCK_SIZE_X = 0.002  # should be <= 0.002 (recommended)
-BLOCK_SIZE_Y = 0.002  # should be <= 0.002 (recommended)
+BLOCK_SIZE_X = Decimal(0.002)  # should be <= 0.002 (recommended)
+BLOCK_SIZE_Y = Decimal(0.002)  # should be <= 0.002 (recommended)
 
 NUM_LABELS_X = 5
 NUM_LABELS_Y = 5
 
 # four coordinates
-P1 = {'x': -73.59, 'y': 45.49}
-P2 = {'x': -73.59, 'y': 45.53}
-P3 = {'x': -73.55, 'y': 45.53}
-P4 = {'x': -73.55, 'y': 45.49}
+P1 = {'x': Decimal(-73.59), 'y': Decimal(45.490)}
+P2 = {'x': Decimal(-73.59), 'y': Decimal(45.530)}
+P3 = {'x': Decimal(-73.55), 'y': Decimal(45.530)}
+P4 = {'x': Decimal(-73.55), 'y': Decimal(45.490)}
 
 COST_FREE_FREE = 1.0
 COST_FREE_DIAG = 1.5
 COST_FREE_BLOCK = 1.3
 
-"""
-Using first points as anchors, get position in square.
-An input such as (-73.59, 45.49) returns 0, 0 as this point is located
-in the bottom left cell (using grid_size=0.002).
-"""
-def get_pos(x, y):
-    pos_x = floor((x - P1['x']) / BLOCK_SIZE_X)
-    pos_y = floor((y - P1['y']) / BLOCK_SIZE_Y)
-    return pos_x, pos_y
 
 def get_num_blocks(num1, num2, size):
     return round((num1 - num2) / size)
 
 def get_labels(start, end, num, size):
     # TODO: 0 is a quick-fix
-    labels = [0, start]
+    labels = [0, float(start)]
     current = start
     jump = (end - start) / num
     for i in range(num):
         current = current + jump
-        labels.append(round(current, 3))
+        labels.append(float(current))
     
     return labels, ticker.MultipleLocator(jump / size)
     
@@ -112,7 +104,7 @@ class CrimeGrid:
         for point in points:
             x_i, y_i = CrimeCell.get_pos(point.x, point.y)
             cell = self.cells[x_i][y_i]
-            cell.x, cell.y = x_i, y_i
+            cell.x, cell.y = Decimal(x_i), Decimal(y_i)
             # self.cells[x_i][y_i].crimes = self.cells[x_i][y_i].crimes + 1
             cell.crimes += 1
 
@@ -134,7 +126,7 @@ class CrimeGrid:
         for i in range(len(self.cells)):
             for j in range(len(self.cells[i])):
                 cell = self.cells[i][j]
-                diff_sq = (cell.crimes - avg) ** 2
+                diff_sq = (Decimal(cell.crimes) - Decimal(avg)) ** 2
                 total_dev = total_dev + diff_sq
 
         return round(sqrt(total_dev / num), 2)
@@ -152,13 +144,13 @@ class CrimeGrid:
         for i in range(len(self.cells)):
             for j in range(len(self.cells[i])):
                 if self.cells[i][j].crimes >= crime_cap:
-                    self.cells[i][j].block = True
+                    self.cells[i][j].blocked = True
 
     def get_mask(self, val=1):
         mask = np.zeros(self.cells.shape)
         for i in range(len(self.cells)):
             for j in range(len(self.cells[i])):
-                if self.cells[i][j].block is True:
+                if self.cells[i][j].blocked:
                     mask[i][j] = val
         return mask
 
@@ -180,7 +172,7 @@ class CrimeGrid:
 class CrimeCell:
     def __init__(self, crimes=0, block=False):
         self.crimes = crimes
-        self.block = block
+        self.blocked = block
         self.neighbours = []
         self.f = 0
 
@@ -194,7 +186,7 @@ class CrimeCell:
         return self.crimes == other.crimes
 
     def __str__(self):
-        return "crimes: {0}, block: {1}".format(self.crimes, self.block)
+        return "crimes: {0}, block: {1}".format(self.crimes, self.blocked)
 
     def f(self, grid, cur, goal):
         cost_g = CrimeCell.calc_g(grid, cur, self)
@@ -213,11 +205,16 @@ class CrimeCell:
         dmin = min(dx, dy)
         return (COST_FREE_DIAG * dmin) + COST_FREE_FREE * (dmax - dmin)
 
+    """
+    Using first points as anchors, get position in square.
+    An input such as (-73.59, 45.49) returns 0, 0 as this point is located
+    in the bottom left cell (using grid_size=0.002).
+    """
     @staticmethod
     def get_pos(x, y):
-        x_i = floor((x - P1['x']) / BLOCK_SIZE_X)
-        y_i = floor((y - P1['y']) / BLOCK_SIZE_Y)
-        return x_i, y_i
+        pos_x = floor((Decimal(x) - Decimal(P1['x'])) / BLOCK_SIZE_X)
+        pos_y = floor((Decimal(y) - Decimal(P1['y'])) / BLOCK_SIZE_Y)
+        return pos_x, pos_y
 
     """
     g is the cost to move from one node to a node.
@@ -225,27 +222,28 @@ class CrimeCell:
     """
     @staticmethod
     def calc_g(grid, node, neighbour):
+        one = Decimal(1)
         if (node.x != neighbour.x) and (node.y != neighbour.y): # diagonal movement
             if node.x < neighbour.x and node.y < neighbour.y: # top right
                 return 1.5 if not node.blocked else 1000
             elif node.x > neighbour.x and node.y < neighbour.y: # top left
-                return 1.5 if not grid.cells[(node.x)-1].blocked else 1000
+                return 1.5 if not grid.cells[(node.x)-one].blocked else 1000
             elif node.x < neighbour.x and node.y > neighbour.y: # bottom right
-                return 1.5 if not grid.cells[node.x][(node.x)-1].blocked else 1000
+                return 1.5 if not grid.cells[node.x][(node.x)-Decimal(1)].blocked else 1000
             else: # bottom left
-                return 1.5 if not grid.cells[(node.x)-1][(node.x)-1].blocked else 1000
+                return 1.5 if not grid.cells[(node.x)-one][(node.x)-one].blocked else 1000
         elif (node.x == neighbour.x) and (node.y != neighbour.y): # vertical movement
             if node.x == 0 or node.x == len(grid): # no border traversal allowed
                 return 1000
             else: # inside grid
                 if node.y < neighbour.y: # up
-                    if node.blocked != grid.cells[(node.x)-1][node.y].blocked:
+                    if node.blocked != grid.cells[(node.x)-one][node.y].blocked:
                         return 1.3
                     else:
                         return 1 if not node.blocked else 1000
                 else: # down
-                    lower_left_b = grid.cells[(node.x)-1][(node.y)-1].blocked
-                    below_b = grid.cells[node.x][(node.y)-1].blocked
+                    lower_left_b = grid.cells[(node.x)-one][(node.y)-one].blocked
+                    below_b = grid.cells[node.x][(node.y)-one].blocked
                     if lower_left_b != below_b:
                         return 1.3
                     else:
@@ -255,13 +253,13 @@ class CrimeCell:
                 return 1000
             else:
                 if (node.x < neighbour.x): # left
-                    lower_left_b = grid.cells[(node.x)-1][(node.y)-1].blocked
-                    left_b = grid.cells[(node.x)-1][node.y].blocked
+                    lower_left_b = grid.cells[(node.x)-one][(node.y)-one].blocked
+                    left_b = grid.cells[(node.x)-one][node.y].blocked
                     if lower_left_b != left_b:
                         return 1.3
                     return 1 if not left_b else 1000
                 else:  # right
-                    below_b = grid.cells[node.x][(node.y)-1].blocked
+                    below_b = grid.cells[node.x][(node.y)-one].blocked
                     if node.blocked != below_b:
                         return 1.3
                     else:
@@ -286,6 +284,7 @@ class CrimeCell:
 
 # https://matplotlib.org/3.1.1/gallery/images_contours_and_fields/pcolor_demo.html# sphx-glr-gallery-images-contours-and-fields-pcolor-demo-py
 if __name__ == '__main__':
+    getcontext().prec = 4
     num_blocks_x = get_num_blocks(P4['x'], P1['x'], BLOCK_SIZE_X)
     num_blocks_y = get_num_blocks(P2['y'], P1['y'], BLOCK_SIZE_Y)
 
@@ -298,6 +297,7 @@ if __name__ == '__main__':
     y_labels, minor_locator = get_labels(P1['y'], P3['y'], 5, BLOCK_SIZE_Y)
 
     ax.xaxis.set_major_locator(major_locator)
+    print(x_labels)
     ax.set_xticklabels(x_labels)
     ax.yaxis.set_major_locator(minor_locator)
     ax.set_yticklabels(y_labels)
@@ -319,4 +319,19 @@ if __name__ == '__main__':
 
     show_cell_counts(pcm, ax, grid, num_blocks_x, num_blocks_y)
 
-    plt.show()
+    # TODO: make start and end depend on user input
+    p_start, p_end = (-73.59, 45.49), (-73.588, 45.492)
+    start_x, start_y, = CrimeCell.get_pos(p_start[0], p_start[1])
+    end_x, end_y =CrimeCell.get_pos(p_end[0], p_end[1])
+    start = grid.cells[start_x][start_y]
+    end = grid.cells[end_x][end_y]
+    ax.text(0, 0, "s", color='red')
+    ax.text(1, 1, "e", color='red')
+
+    print(start.y, end.y)
+    print(end_x, end_y)
+
+    g = CrimeCell.calc_g(grid, start, grid.cells[(start.x)+1, (start.y)+1])
+    #print(g)
+
+    #plt.show()
